@@ -510,6 +510,12 @@ wxNotebookPage* PreferencesWindow::CreateClientPage() {
 	check_sigs_chkbox->SetToolTip("When this option is not checked, the editor will load any OTB/DAT/SPR combination without complaints. This may cause graphics bugs.");
 	options_sizer->Add(check_sigs_chkbox, 0, wxLEFT | wxRIGHT | wxTOP, 5);
 
+	// Check file sigs checkbox
+	use_clientid_chkbox = newd wxCheckBox(client_page, wxID_ANY, "Use clientId");
+	use_clientid_chkbox->SetValue(g_settings.getBoolean(Config::USE_CLIENT_ID));
+	use_clientid_chkbox->SetToolTip("use essa opcao para usar clientId de vez de serverId.");
+	options_sizer->Add(use_clientid_chkbox, 0, wxLEFT | wxRIGHT | wxTOP, 5);
+
 	// Add the grid sizer
 	topsizer->Add(options_sizer, wxSizerFlags(0).Expand());
 	topsizer->AddSpacer(10);
@@ -711,6 +717,8 @@ void PreferencesWindow::Apply() {
 		version_counter++;
 	}
 	g_settings.setInteger(Config::CHECK_SIGNATURES, check_sigs_chkbox->GetValue());
+
+	g_settings.setInteger(Config::USE_CLIENT_ID, use_clientid_chkbox->GetValue());
 
 	// Make sure to reload client paths
 	ClientVersion::saveVersions();

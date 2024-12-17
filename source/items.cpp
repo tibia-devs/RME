@@ -821,12 +821,14 @@ bool ItemDatabase::loadFromOtb(const FileName& datafile, wxString& error, wxArra
 
 bool ItemDatabase::loadItemFromGameXml(pugi::xml_node itemNode, int id) {
 	ClientVersionID clientVersion = g_gui.GetCurrentVersionID();
-	if (clientVersion < CLIENT_VERSION_980 && id > 20000 && id < 20100) {
-		itemNode = itemNode.next_sibling();
-		return true;
-	} else if (id > 30000 && id < 30100) {
-		itemNode = itemNode.next_sibling();
-		return true;
+	if(!g_settings.getInteger(Config::USE_CLIENT_ID)){
+		if (clientVersion < CLIENT_VERSION_980 && id > 20000 && id < 20100) {
+			itemNode = itemNode.next_sibling();
+			return true;
+		} else if (id > 30000 && id < 30100) {
+			itemNode = itemNode.next_sibling();
+			return true;
+		}
 	}
 
 	ItemType& it = getItemType(id);
@@ -1085,4 +1087,358 @@ ItemType& ItemDatabase::getItemType(int id) {
 bool ItemDatabase::typeExists(int id) const {
 	ItemType* it = items[id];
 	return it != nullptr;
+}
+#include "client_version.h"
+
+	
+bool ItemDatabase::loadFromDat(const FileName& datafile, wxString& error, wxArrayString& warnings) {
+	// items.otb has most of the info we need. This only loads the GameSprite metadata
+	//ClientVersion* client_version = new ClientVersion(nullptr);
+	FileReadHandle file(nstr(datafile.GetFullPath()));
+
+	if (!file.isOk()) {
+		error += "Failed to open " + datafile.GetFullPath() + " for reading\nThe error reported was:" + wxstr(file.getErrorMessage());
+		return false;
+	}
+	
+	MajorVersion = 16;
+	MinorVersion = 16;
+
+	uint32_t signature;
+	uint16_t objectCount;
+	uint16_t outfitCount;
+	uint16_t effectCount;
+	uint16_t missileCount;
+	
+	file.getU32(signature);
+	file.getU16(objectCount);
+	file.getU16(outfitCount);
+	file.getU16(effectCount);
+	file.getU16(missileCount);
+
+	auto datSignature =  DAT_FORMAT_96;//ClientVersion::getDatFormatForSignature(signature);
+	auto is_extended = datSignature >= DAT_FORMAT_96;
+	auto has_frame_durations = datSignature >= DAT_FORMAT_1050;
+	auto has_frame_groups = datSignature >= DAT_FORMAT_1057;
+
+	uint16_t firstId = 100;
+	for (uint16_t id = firstId; id < objectCount; ++id) {
+		ItemType* item = newd ItemType();
+		item->id = id;
+		item->clientID = id;
+		item->sprite = static_cast<GameSprite*>(g_gui.gfx.getSprite(item->clientID));
+
+		// Load the sprite flags
+		if (!loadFromDatFlags(file, item, error, warnings)) {
+			wxString msg;
+			msg << "Failed to load flags for sprite " << item->id;
+			warnings.push_back(msg);
+		}
+		
+		// Reads the group count
+		uint8_t group_count = 1;
+		if (has_frame_groups && id > objectCount) {
+			file.getU8(group_count);
+		}
+		
+		for (uint32_t k = 0; k < group_count; ++k) {
+			// Skipping the group type
+			if (has_frame_groups && id > objectCount) {
+				file.skip(1);
+			}
+			
+			uint8_t width, height;
+			file.getU8(width);
+			file.getU8(height);
+			if (width > 1 || height > 1) {
+				file.skip(1);
+			}
+
+			uint8_t layers, patternX, patternY, patternZ, frames;
+			file.getU8(layers);
+			file.getU8(patternX);
+			file.getU8(patternY);
+			if (datSignature <= DAT_FORMAT_74) {
+				patternZ = 1;
+			} else {
+				file.getU8(patternZ);
+			}
+			file.getU8(frames);
+			if (frames > 1) {
+				if (has_frame_durations) {
+					for (int i = 0; i < frames; i++) {
+						file.skip(6);
+					}
+				}
+				
+				if (has_frame_durations) {
+					for (int i = 0; i < frames; i++) {
+						file.skip(8);
+					}
+				}
+			}
+			
+			if (is_extended) {
+				file.skip(4 * ((width * height) * layers * patternX * patternY * patternZ * frames));
+			}else{
+				file.skip(2 * ((width * height) * layers * patternX * patternY * patternZ * frames));
+			}
+		}
+	}
+
+	return true;
+}
+
+bool ItemDatabase::loadFromDatFlags(FileReadHandle& file, ItemType* item, wxString& error, wxArrayString& warnings) {
+	uint8_t prev_flag = 0;
+	uint8_t flag = DatFlagLast;
+	
+	for (int i = 0; i < DatFlagLast; ++i) {
+		prev_flag = flag;
+		file.getU8(flag);
+
+		if (flag == DatFlagLast) {
+			return true;
+		}
+		
+		item->group = ItemGroup_t(flag);
+
+		switch (flag) {
+			case DatAttrGround:
+				//item->speed = props.read<uint16_t>();
+				file.skip(2);
+				break;
+
+			case DatAttrClip:
+				item->alwaysOnTopOrder = 1;
+				break;
+
+			case DatAttrTop:
+				item->alwaysOnTopOrder = 3;
+				break;
+
+			case DatAttrBottom:
+				item->alwaysOnTopOrder = 2;
+				break;
+
+			case DatAttrContainer:
+				item->type = ITEM_TYPE_CONTAINER;
+				break;
+
+			case DatAttrStackable: {
+				item->stackable = true;
+				break;
+			}
+
+			case DatAttrUsable:
+				//item->useable = true;
+				break;
+
+			case DatAttrForceUse:
+				//item.forceUse = true;
+				break;
+
+			case DatAttrMultiUse:
+				break;
+
+			case DatAttrWriteable: {
+				item->canReadText = true;
+				file.getU16(item->maxTextLen);
+				break;
+			}
+
+			case DatAttrWriteableOnce: {
+				item->canReadText = true;
+				file.getU16(item->maxTextLen);
+				break;
+			}
+
+			case DatAttrLiquidPool:
+				//item.group = ITEM_GROUP_SPLASH;
+				break;
+
+			case DatAttrLiquidContainer:
+				//item.group = ITEM_GROUP_FLUID;
+				break;
+
+			case DatAttrImpassable:
+				//item.blockSolid = true;
+				break;
+
+			case DatAttrUnmovable:
+				//item.movable = false;
+				break;
+
+			case DatAttrBlocksSight:
+				//item.blockProjectile = true;
+				break;
+
+			case DatAttrBlocksPathfinding:
+				item->blockPathfinder = true;
+				break;
+
+			case DatAttrNoMovementAnimation:
+				break;
+
+			case DatAttrPickupable:
+				item->pickupable = true;
+				break;
+
+			case DatAttrHangable:
+				item->isHangable = true;
+				break;
+
+			case DatAttrHooksSouth:
+				//item.isVertical = true;
+				break;
+
+			case DatAttrHooksEast:
+				//item.isHorizontal = true;
+				break;
+
+			case DatAttrRotateable:
+				item->rotable = true;
+				break;
+
+			case DatAttrLightSource: {
+				//item->lightLevel = props.read<uint16_t>();
+				//item->lightColor = props.read<uint16_t>();
+				file.skip(4);
+				break;
+			}
+
+			case DatAttrAlwaysSeen:
+				break;
+
+			case DatAttrTranslucent:
+				break;
+
+			case DatAttrDisplaced: {
+				file.skip(4);
+				break;
+			}
+
+			case DatAttrElevated: {
+				item->hasElevation = true;
+				file.skip(2);
+				break;
+			}
+
+			case DatAttrAlwaysAnimated:
+				break;
+
+			case DatAttrMinimapColor:
+				file.skip(2);
+				break;
+
+			case DatAttrFullTile:
+				//item.group = ITEM_GROUP_GROUND;
+				break;
+
+			case DatAttrHelpInfo: {
+				uint16_t opt;
+				file.getU16(opt);
+				if (opt == 1112) {
+					item->canReadText = true;
+				}
+				break;
+			}
+
+			case DatAttrLookthrough: {
+				item->ignoreLook = true;
+				break;
+			}
+
+			case DatAttrClothes: {
+				file.skip(2);
+				break;
+			}
+
+			case DatAttrMarket: {
+				file.skip(6);
+				std::string marketName;
+				file.getString(marketName);
+				file.skip(4);
+				break;
+			}
+
+			case DatAttrDefaultAction:
+				file.skip(2);
+				break;
+
+			case DatAttrWrappable:
+			case DatAttrUnWrappable:
+			case DatAttrTopEffect: {
+				break;
+			}										 	
+
+			case DatAttrNpcSaleData: {
+				break;
+			}
+			case DatAttrChangedToExpire: {
+				file.skip(2);
+				break;
+			}
+			case DatAttrCorpse: {
+				//item.isCorpse = true;
+				break;
+			}
+			case DatAttrPlayerCorpse: {
+				//item.isCorpse = true;
+				break;
+			}
+			case DatAttrCyclopediaItem: {
+				file.skip(2);
+				break;
+			}
+			case DatAttrAmmo: {
+				break;
+			}
+			case DatAttrShowOffSocket: {
+				//item.isPodium = true;
+				break;
+			}
+			case DatAttrReportable: {
+				break;
+			}
+			case DatAttrUpgradeClassification: {
+				file.skip(2);
+				break;
+			}
+			case DatAttrWearout: {
+				//item.wearOut = true;
+				break;
+			}
+			case DatAttrClockExpire: {
+				//item.clockExpire = true;
+				break;
+			}
+			case DatAttrExpire: {
+				//item.expire = true;
+				break;
+			}
+			case DatAttrExpireStop: {
+				//item.expireStop = true;
+				break;
+			}
+
+			default: {
+				break;
+			}
+		}
+		
+		if (item) {
+			/*if (items[item->id]) {
+				warnings.push_back("items.otb: Duplicate items");
+				delete items[item->id];
+			}*/
+			items.set(item->id, item);
+		}
+
+		if (max_item_id < item->id) {
+			max_item_id = item->id;
+		}
+	}
+
+	return true;
 }

@@ -437,6 +437,8 @@ public:
 	bool loadFromGameXml(const FileName& datafile, wxString& error, wxArrayString& warnings);
 	bool loadItemFromGameXml(pugi::xml_node itemNode, int id);
 	bool loadMetaItem(pugi::xml_node node);
+	bool loadFromDat(const FileName& datafile, wxString& error, wxArrayString& warnings);
+	bool loadFromDatFlags(FileReadHandle& file, ItemType* item, wxString& error, wxArrayString& warnings);
 
 	// typedef std::map<int32_t, ItemType*> ItemMap;
 	typedef contigous_vector<ItemType*> ItemMap;

@@ -235,7 +235,11 @@ void Item::serializeItemAttributes_OTBM(const IOMap& maphandle, NodeFileWriteHan
 }
 
 void Item::serializeItemCompact_OTBM(const IOMap& maphandle, NodeFileWriteHandle& stream) const {
-	stream.addU16(id);
+	auto _id = id;
+	if(g_settings.getBoolean(Config::USE_CLIENT_ID)){
+		_id = getClientID();
+	}
+	stream.addU16(_id);
 
 	/* This is impossible
 	const ItemType& iType = g_items[id];
@@ -248,9 +252,14 @@ void Item::serializeItemCompact_OTBM(const IOMap& maphandle, NodeFileWriteHandle
 
 bool Item::serializeItemNode_OTBM(const IOMap& maphandle, NodeFileWriteHandle& file) const {
 	file.addNode(OTBM_ITEM);
-	file.addU16(id);
+	auto _id = id;
+	if(g_settings.getBoolean(Config::USE_CLIENT_ID)){
+		_id = getClientID();
+	}
+	
+	file.addU16(_id);
 	if (maphandle.version.otbm == MAP_OTBM_1) {
-		const ItemType& iType = g_items[id];
+		const ItemType& iType = g_items[_id];
 		if (iType.stackable || iType.isSplash() || iType.isFluidContainer()) {
 			file.addU8(getSubtype());
 		}
@@ -396,10 +405,15 @@ bool Container::unserializeItemNode_OTBM(const IOMap& maphandle, BinaryNode* nod
 
 bool Container::serializeItemNode_OTBM(const IOMap& maphandle, NodeFileWriteHandle& file) const {
 	file.addNode(OTBM_ITEM);
-	file.addU16(id);
+	auto _id = id;
+	if(g_settings.getBoolean(Config::USE_CLIENT_ID)){
+		_id = getClientID();
+	}
+	
+	file.addU16(_id);
 	if (maphandle.version.otbm == MAP_OTBM_1) {
 		// In the ludicrous event that an item is a container AND stackable, we have to do this. :p
-		const ItemType& iType = g_items[id];
+		const ItemType& iType = g_items[_id];
 		if (iType.stackable || iType.isSplash() || iType.isFluidContainer()) {
 			file.addU8(getSubtype());
 		}
@@ -762,7 +776,7 @@ bool IOMapOTBM::loadMap(Map& map, NodeFileReadHandle& f) {
 
 	version.otbm = (MapVersionID)u32;
 
-	if (version.otbm > MAP_OTBM_4) {
+	if (version.otbm > MAP_OTBM_CLIENTID) {
 		// Failed to read version
 		if (g_gui.PopupDialog("Map error", "The loaded map appears to be a OTBM format that is not supported by the editor."
 										   "Do you still want to attempt to load the map?",

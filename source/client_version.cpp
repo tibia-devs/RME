@@ -213,7 +213,7 @@ void ClientVersion::loadVersion(pugi::xml_node versionNode) {
 			}
 
 			int32_t otbmVersion = attribute.as_int() - 1;
-			if (otbmVersion < MAP_OTBM_1 || otbmVersion > MAP_OTBM_4) {
+			if (otbmVersion < MAP_OTBM_1 || otbmVersion > MAP_OTBM_CLIENTID) {
 				wxLogError("Node 'otbm' unsupported version.");
 				continue;
 			}
