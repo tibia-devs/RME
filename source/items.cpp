@@ -1201,11 +1201,10 @@ bool ItemDatabase::loadFromDatFlags(FileReadHandle& file, ItemType* item, wxStri
 			return true;
 		}
 		
-		item->group = ItemGroup_t(flag);
-
 		switch (flag) {
 			case DatAttrGround:
 				//item->speed = props.read<uint16_t>();
+				item->group = ITEM_GROUP_GROUND;
 				file.skip(2);
 				break;
 
@@ -1254,11 +1253,11 @@ bool ItemDatabase::loadFromDatFlags(FileReadHandle& file, ItemType* item, wxStri
 			}
 
 			case DatAttrLiquidPool:
-				//item.group = ITEM_GROUP_SPLASH;
+				item->group = ITEM_GROUP_SPLASH;
 				break;
 
 			case DatAttrLiquidContainer:
-				//item.group = ITEM_GROUP_FLUID;
+				item->group = ITEM_GROUP_FLUID;
 				break;
 
 			case DatAttrImpassable:
@@ -1332,7 +1331,7 @@ bool ItemDatabase::loadFromDatFlags(FileReadHandle& file, ItemType* item, wxStri
 				break;
 
 			case DatAttrFullTile:
-				//item.group = ITEM_GROUP_GROUND;
+				item->group = ITEM_GROUP_GROUND;
 				break;
 
 			case DatAttrHelpInfo: {
