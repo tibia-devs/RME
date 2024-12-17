@@ -353,12 +353,22 @@ bool GUI::LoadDataFiles(wxString& error, wxArrayString& warnings) {
 		return false;
 	}
 
-	g_gui.SetLoadDone(20, "Loading items.otb file...");
-	if (!g_items.loadFromOtb(wxString(data_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + "items.otb"), error, warnings)) {
-		error = "Couldn't load items.otb: " + error;
-		g_gui.DestroyLoadBar();
-		UnloadVersion();
-		return false;
+	if (!g_settings.getInteger(Config::USE_CLIENT_ID)) {
+		g_gui.SetLoadDone(20, "Loading items.otb file...");
+		if (!g_items.loadFromOtb(wxString(data_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + "items.otb"), error, warnings)) {
+			error = "Couldn't load items.otb: " + error;
+			g_gui.DestroyLoadBar();
+			UnloadVersion();
+			return false;
+		}
+	}else{
+		g_gui.SetLoadDone(20, "Loading items.dat file...");
+		if (!g_items.loadFromDat(wxString(data_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + "items.dat"), error, warnings)) {
+			error = "Couldn't load items.dat: " + error;
+			g_gui.DestroyLoadBar();
+			UnloadVersion();
+			return false;
+		}
 	}
 
 	g_gui.SetLoadDone(30, "Loading items.xml ...");

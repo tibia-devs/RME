@@ -89,6 +89,7 @@ enum MapVersionID {
 	MAP_OTBM_2 = 1,
 	MAP_OTBM_3 = 2,
 	MAP_OTBM_4 = 3,
+    MAP_OTBM_CLIENTID = 4,
 };
 
 // The composed version of a otbm file (otbm version, client version)
@@ -127,7 +128,8 @@ enum DatFormat {
 	DAT_FORMAT_96,
 	DAT_FORMAT_1010,
 	DAT_FORMAT_1050,
-	DAT_FORMAT_1057
+	DAT_FORMAT_1057,
+	DAT_FORMAT_11
 };
 
 enum DatFlags : uint8_t {
@@ -174,6 +176,63 @@ enum DatFlags : uint8_t {
 	DatFlagNoMoveAnimation = 253, // 10.10: real value is 16, but we need to do this for backwards compatibility
 	DatFlagChargeable = 254,
 	DatFlagLast = 255
+};
+
+enum DatAttr : uint8_t {
+	DatAttrGround = 0,
+	DatAttrClip = 1,
+	DatAttrBottom = 2,
+	DatAttrTop = 3,
+	DatAttrContainer = 4,
+	DatAttrStackable = 5,
+	DatAttrForceUse = 6,
+	DatAttrUsable = 254,
+	DatAttrMultiUse = 7,
+	DatAttrWriteable = 8,
+	DatAttrWriteableOnce = 9,
+	DatAttrLiquidContainer = 10,
+	DatAttrLiquidPool = 11,
+	DatAttrImpassable = 12,
+	DatAttrUnmovable = 13,
+	DatAttrBlocksSight = 14,
+	DatAttrBlocksPathfinding = 15,
+	DatAttrNoMovementAnimation = 16,
+	DatAttrPickupable = 17,
+	DatAttrHangable = 18,
+	DatAttrHooksSouth = 19,
+	DatAttrHooksEast = 20,
+	DatAttrRotateable = 21,
+	DatAttrLightSource = 22,
+	DatAttrAlwaysSeen = 23,
+	DatAttrTranslucent = 24,
+	DatAttrDisplaced = 25,
+	DatAttrElevated = 26,
+	DatAttrLyingObject = 27,
+	DatAttrAlwaysAnimated = 28,
+	DatAttrMinimapColor = 29,
+	DatAttrHelpInfo = 30,
+	DatAttrFullTile = 31,
+	DatAttrLookthrough = 32,
+	DatAttrClothes = 33,
+	DatAttrMarket = 34,
+	DatAttrDefaultAction = 35,
+	DatAttrWrappable = 36,
+	DatAttrUnWrappable = 37,
+	DatAttrTopEffect = 38,
+	DatAttrNpcSaleData = 39,
+	DatAttrChangedToExpire = 40,
+	DatAttrCorpse = 41,
+	DatAttrPlayerCorpse = 42,
+	DatAttrCyclopediaItem = 43,
+	DatAttrAmmo = 44,
+	DatAttrShowOffSocket = 45,
+	DatAttrReportable = 46,
+	DatAttrUpgradeClassification = 47,
+	DatAttrWearout = 48,
+	DatAttrClockExpire = 49,
+	DatAttrExpire = 50,
+	DatAttrExpireStop = 51,
+	DatAttrDefault = 255
 };
 
 // Represents a client file version

@@ -601,7 +601,18 @@ bool GraphicManager::loadSpriteMetadataFlags(FileReadHandle& file, GameSprite* s
 		if (flag == DatFlagLast) {
 			return true;
 		}
-		if (dat_format >= DAT_FORMAT_1010) {
+
+		if (dat_format >= DAT_FORMAT_11) {
+			/* In 10.10+ all attributes from 16 and up were
+			 * incremented by 1 to make space for 16 as
+			 * "No Movement Animation" flag.
+			 */
+			if (flag == 16) {
+				flag = DatFlagNoMoveAnimation;
+			} else if (flag > 16) {
+				flag -= 1;
+			}
+		} else if (dat_format >= DAT_FORMAT_1010) {
 			/* In 10.10+ all attributes from 16 and up were
 			 * incremented by 1 to make space for 16 as
 			 * "No Movement Animation" flag.
